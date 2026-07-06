@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <meta name="description" content="F1 Team Management System - Your ultimate Formula 1 analytics dashboard">
+  <title>F1 Team Management System</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    :root {
+      --f1-black: #0a0a0c;
+      --f1-dark-card: #0f0f14;
+      --f1-elevated: #16161e;
+      --f1-border: rgba(255,255,255,0.05);
+      --f1-glow-red: #e10600;
+      --f1-silver: #c0c0c0;
+      --f1-white: #ffffff;
+      --f1-muted: #8e8e9e;
+      --f1-gradient: linear-gradient(135deg, #e10600 0%, #b00000 100%);
+      --nav-height: 64px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { background: var(--f1-black); font-family: 'Inter','Space Grotesk',sans-serif; color: var(--f1-white); overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--f1-dark-card); }
+    ::-webkit-scrollbar-thumb { background: var(--f1-glow-red); border-radius: 10px; }
+
+    /* ===== ANIMATED AUTH ===== */
+    #authSection { min-height: 100vh; position: relative; display: flex; align-items: center; justify-content: center; padding: 1rem; overflow: hidden; }
+
+    .auth-bg { position: fixed; inset: 0; background: #050508; z-index: 0; overflow: hidden; }
+    .auth-bg::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 30%, rgba(225,6,0,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 70%, rgba(80,0,200,0.12) 0%, transparent 55%);
+      animation: bgPulse 6s ease-in-out infinite alternate;
+    }
+    @keyframes bgPulse { 0%{opacity:.7;transform:scale(1)} 100%{opacity:1;transform:scale(1.05)} }
+
+    .auth-grid {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(225,6,0,0.04) 1px,transparent 1px), linear-gradient(90deg,rgba(225,6,0,0.04) 1px,transparent 1px);
+      background-size: 60px 60px;
+      animation: gridMove 20s linear infinite;
+    }
+    @keyframes gridMove { 0%{background-position:0 0} 100%{background-position:60px 60px} }
+
+    .auth-scanline { position: absolute; inset: 0; background: repeating-linear-gradient(0deg,rgba(0,0,0,0.12) 0px,rgba(0,0,0,0.12) 1px,transparent 1px,transparent 5px); pointer-events: none; z-index: 1; }
+
+    .stripe {
+      position: absolute; width: 2px;
+      background: linear-gradient(to bottom, transparent, rgba(225,6,0,0.6), transparent);
+      animation: stripeFall linear infinite; border-radius: 2px;
+    }
+    @keyframes stripeFall {
+      0%   { transform: translateY(-100vh) rotate(25deg); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { transform: translateY(200vh) rotate(25deg); opacity: 0; }
+    }
+
+    .speed-dot { position: absolute; border-radius: 50%; background: radial-gradient(circle,rgba(225,6,0,0.45),transparent 70%); animation: floatDot ease-in-out infinite; }
+    @keyframes floatDot { 0%,100%{transform:translate(0,0) scale(1);opacity:.3} 50%{transform:translate(20px,-30px) scale(1.2);opacity:.7} }
+
+    /* login card */
+    .auth-card {
+      position: relative; z-index: 10;
+      width: 100%; max-width: 420px;
+      background: rgba(10,10,15,0.88);
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(225,6,0,0.35);
+      border-radius: 28px;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 0 0 1px rgba(225,6,0,0.1), 0 30px 60px rgba(0,0,0,0.7), 0 0 40px rgba(225,6,0,0.12);
+      animation: cardIn 0.6s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes cardIn { from{opacity:0;transform:translateY(32px) scale(0.97)} to{opacity:1;transform:none} }
+    .auth-card::before {
+      content: ''; position: absolute; top: -1px; left: 20%; right: 20%; height: 2px;
+      background: linear-gradient(90deg,transparent,#e10600,#ff5c00,#e10600,transparent);
+      border-radius: 2px; animation: edgeGlow 2s ease-in-out infinite alternate;
+    }
+    @keyframes edgeGlow { 0%{opacity:.5} 100%{opacity:1;box-shadow:0 0 12px #e10600} }
+
+    .auth-logo-img { width: 72px; height: auto; filter: drop-shadow(0 0 10px rgba(225,6,0,0.6)); animation: logoPulse 3s ease-in-out infinite; }
+    @keyframes logoPulse { 0%,100%{filter:drop-shadow(0 0 8px rgba(225,6,0,0.5))} 50%{filter:drop-shadow(0 0 18px rgba(225,6,0,0.9))} }
+
+    .auth-title { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
+    .auth-sub { color: var(--f1-muted); font-size: 0.85rem; }
+
+    .auth-tab-btn {
+      background: transparent; border: 1px solid rgba(225,6,0,0.3); color: var(--f1-muted);
+      border-radius: 40px; padding: 7px 22px; font-size: 0.78rem; font-weight: 700; letter-spacing: 1px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .auth-tab-btn.active, .auth-tab-btn:hover { background: var(--f1-glow-red); border-color: var(--f1-glow-red); color: #fff; box-shadow: 0 0 14px rgba(225,6,0,0.4); }
+
+    .f1-input {
+      width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 11px 14px; color: white; font-size: 0.9rem; transition: all 0.2s; outline: none;
+    }
+    .f1-input:focus { border-color: var(--f1-glow-red); background: rgba(225,6,0,0.06); box-shadow: 0 0 0 3px rgba(225,6,0,0.15); }
+    .f1-input::placeholder { color: rgba(255,255,255,0.25); }
+    .f1-label { font-size: 0.75rem; font-weight: 600; color: var(--f1-muted); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; display: block; }
+
+    .btn-f1 {
+      background: var(--f1-gradient); border: none; border-radius: 40px; padding: 13px 24px;
+      font-weight: 700; font-size: 0.85rem; letter-spacing: 1px; color: white; cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 16px rgba(225,6,0,0.35); width: 100%;
+    }
+    .btn-f1:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(225,6,0,0.55); }
+
+    .btn-outline-f1 { background: transparent; border: 1px solid var(--f1-glow-red); color: var(--f1-glow-red); border-radius: 40px; padding: 8px 20px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-outline-f1:hover { background: rgba(225,6,0,0.1); }
+
+    .demo-hint { font-size: 0.72rem; color: rgba(255,255,255,0.25); text-align: center; margin-top: 12px; }
+
+    /* ===== NAVBAR ===== */
+    .navbar {
+      background: rgba(8,8,11,0.96); backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(225,6,0,0.3);
+      height: var(--nav-height); position: fixed; top:0; left:0; width:100%; z-index:1030;
+      display: flex; align-items: center;
+    }
+    .navbar-inner { display:flex; align-items:center; justify-content:space-between; width:100%; padding:0 1.25rem; gap:1rem; }
+    .navbar-brand-wrapper { display:flex; align-items:center; gap:10px; text-decoration:none; flex-shrink:0; }
+    .navbar-logo { height:38px; width:auto; object-fit:contain; filter:drop-shadow(0 0 4px rgba(225,6,0,0.4)); }
+    .navbar-brand-text { font-weight:800; font-size:1.05rem; letter-spacing:-0.3px; background:linear-gradient(135deg,#fff 20%,#e10600 80%); -webkit-background-clip:text; background-clip:text; color:transparent; white-space:nowrap; line-height:1.2; }
+
+    .nav-toggle { background:none; border:1px solid rgba(225,6,0,0.3); border-radius:10px; color:white; width:40px; height:40px; display:none; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; font-size:1.3rem; }
+
+    .nav-menu { display:flex; align-items:center; gap:2px; list-style:none; }
+    .nav-link { display:flex; align-items:center; gap:6px; color:rgba(255,255,255,0.65); font-weight:500; font-size:0.83rem; padding:7px 13px; border-radius:40px; text-decoration:none; transition:all 0.2s; white-space:nowrap; }
+    .nav-link:hover, .nav-link.active { color:var(--f1-glow-red); background:rgba(225,6,0,0.1); }
+    .nav-link.danger { color:#ff5555; }
+    .nav-link.danger:hover { background:rgba(255,60,60,0.1); color:#ff5555; }
+
+    @media(max-width:900px){
+      .nav-toggle { display:flex; }
+      .navbar-brand-text { font-size:0.85rem; }
+      .navbar-logo { height:30px; }
+      .nav-menu {
+        display:none; position:fixed; top:var(--nav-height); left:0; right:0;
+        background:rgba(8,8,11,0.98); backdrop-filter:blur(20px);
+        border-bottom:1px solid rgba(225,6,0,0.2);
+        flex-direction:column; padding:1rem; gap:4px; z-index:1029;
+        max-height:calc(100vh - var(--nav-height)); overflow-y:auto;
+      }
+      .nav-menu.open { display:flex; }
+      .nav-menu li { width:100%; }
+      .nav-link { font-size:0.9rem; padding:10px 14px; border-radius:12px; }
+    }
+    @media(max-width:400px){ .navbar-brand-text { display:none; } }
+
+    .navbar-spacer { height: var(--nav-height); }
+
+    /* ===== PAGE CONTENT ===== */
+    .page-content { padding:1.5rem 1rem 2rem; max-width:1400px; margin:0 auto; }
+    @media(min-width:768px){ .page-content { padding:2rem 1.5rem 3rem; } }
+
+    /* ===== TITLE ===== */
+    .title-section { text-align:center; padding:1.5rem 1rem 1rem; position:relative; }
+    .main-dashboard-title { font-size:clamp(1.8rem,6vw,4rem); font-weight:900; letter-spacing:-1px; background:linear-gradient(125deg,#fff 0%,#ffd1c0 35%,#e10600 75%,#ff5c00 100%); -webkit-background-clip:text; background-clip:text; color:transparent; font-family:'Space Grotesk',sans-serif; margin-bottom:0.3rem; }
+    .title-badge { display:block; font-size:clamp(0.65rem,2vw,0.95rem); font-weight:500; text-transform:uppercase; letter-spacing:5px; background:linear-gradient(95deg,#ff8a6f,#ffcd94); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .title-section::after { content:''; display:block; width:60%; height:2px; background:linear-gradient(90deg,transparent,#e10600,#ff5e2e,transparent); margin:12px auto 0; border-radius:2px; }
+
+    /* ===== HERO ===== */
+    .hero-f1 { border-radius:24px; overflow:hidden; box-shadow:0 20px 40px rgba(0,0,0,0.6),0 0 0 1px rgba(225,6,0,0.2); margin-bottom:1.5rem; transition:transform 0.25s,box-shadow 0.3s; cursor:pointer; }
+    .hero-f1:hover { transform:scale(1.005); box-shadow:0 28px 48px rgba(0,0,0,0.7),0 0 0 1px rgba(225,6,0,0.5); }
+    .hero-img { width:100%; display:block; aspect-ratio:21/9; object-fit:cover; background:#020408; }
+    @media(max-width:600px){ .hero-img { aspect-ratio:16/9; } }
+
+    /* ===== STAT CARDS ===== */
+    .stat-card { background:var(--f1-dark-card); border-radius:20px; border:1px solid var(--f1-border); padding:1.2rem; transition:all 0.25s; box-shadow:0 6px 18px rgba(0,0,0,0.3); height:100%; }
+    .stat-card:hover { border-color:rgba(225,6,0,0.4); transform:translateY(-2px); }
+
+    /* ===== KPI GRID ===== */
+    .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0.75rem; margin-bottom:1.5rem; }
+    @media(max-width:600px){ .kpi-grid { grid-template-columns:repeat(2,1fr); } }
+    .kpi-card { background:var(--f1-dark-card); border:1px solid var(--f1-border); border-radius:18px; padding:1rem 0.8rem; text-align:center; transition:all 0.2s; }
+    .kpi-card:hover { border-color:rgba(225,6,0,0.4); transform:translateY(-2px); }
+    .kpi-icon { font-size:1.8rem; display:block; margin-bottom:0.4rem; }
+    .kpi-value { font-size:1.6rem; font-weight:800; line-height:1; }
+    .kpi-label { font-size:0.68rem; color:var(--f1-muted); margin-top:4px; text-transform:uppercase; letter-spacing:0.5px; }
+
+    /* ===== DRIVER MODAL ===== */
+    .driver-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(8px);
+    }
+    .driver-modal-overlay.active {
+      display: flex;
+    }
+    .driver-modal {
+      background: linear-gradient(145deg, #1a1a24, #0f0f18);
+      border: 1px solid rgba(225,6,0,0.4);
+      border-radius: 24px;
+      padding: 2rem;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 0 60px rgba(225,6,0,0.3);
+      animation: modalIn 0.3s ease;
+    }
+    @keyframes modalIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .driver-modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: rgba(225,6,0,0.2);
+      border: 1px solid rgba(225,6,0,0.4);
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      z-index: 10;
+    }
+    .driver-modal-close:hover {
+      background: var(--f1-glow-red);
+      transform: rotate(90deg);
+    }
+    .driver-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .driver-modal-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--f1-glow-red);
+      box-shadow: 0 0 20px rgba(225,6,0,0.4);
+    }
+    .driver-modal-info h3 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 0.3rem;
+    }
+    .driver-modal-number {
+      font-size: 3rem;
+      font-weight: 900;
+      color: var(--f1-glow-red);
+      opacity: 0.3;
+      position: absolute;
+      top: 1rem;
+      right: 4rem;
+    }
+    .driver-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .driver-stat-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 0.75rem;
+      text-align: center;
+    }
+    .driver-stat-box .stat-value {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--f1-glow-red);
+    }
+    .driver-stat-box .stat-label {
+      font-size: 0.65rem;
+      color: var(--f1-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .driver-bio {
+      color: var(--f1-muted);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      margin-top: 1rem;
+    }
+    .driver-highlight {
+      display: inline-block;
+      background: linear-gradient(90deg, var(--f1-glow-red), #ff5c00);
+      color: white;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-top: 0.5rem;
+    }
+    .driver-modal-photo {
+      width: 100%;
+      border-radius: 12px;
+      margin-top: 1rem;
+      border: 2px solid rgba(225,6,0,0.3);
+      object-fit: cover;
+      max-height: 300px;
+    }
+
+    /* ===== VIDEO SECTION ===== */
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      background: #000;
+    }
+    .video-wrapper video {
+      width: 100%;
+      display: block;
+      aspect-ratio: 16/9;
+      object-fit: contain;
+      background: #000;
+    }
+
+    /* ===== PLATFORM IMAGE ===== */
+    .platform-image {
+      width: 100%;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      border: 2px solid rgba(225,6,0,0.3);
+      object-fit: cover;
+      aspect-ratio: 16/9;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .platform-image:hover {
+      transform: scale(1.02);
+      box-shadow: 0 12px 32px rgba(225,6,0,0.3);
+    }
+
+    /* ===== DRIVER CARDS ===== */
+    .driver-card { 
+      background:linear-gradient(145deg,#13131c,#0c0c12); 
+      border-radius:18px; 
+      border-left:3px solid var(--f1-glow-red); 
+      padding:1rem; 
+      display:flex; 
+      align-items:center; 
+      gap:1rem; 
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .driver-card:hover {
+      border-left-width: 6px;
+      transform: translateX(3px);
+      box-shadow: 0 5px 20px rgba(225,6,0,0.2);
+    }
+    .driver-avatar-img { width:72px; height:72px; border-radius:50%; object-fit:cover; border:2px solid var(--f1-glow-red); background:#0a0a12; box-shadow:0 0 12px rgba(225,6,0,0.3); flex-shrink:0; transition:transform 0.2s; }
+    .driver-avatar-img:hover { transform:scale(1.05); }
+    .driver-stats { display:flex; gap:1rem; margin-top:0.5rem; }
+    .driver-stat-item small { display:block; color:var(--f1-muted); font-size:0.65rem; text-transform:uppercase; }
+    .driver-stat-item .val { font-weight:700; font-size:0.95rem; }
+
+    .badge-f1 { background:rgba(225,6,0,0.18); color:#ff7b6e; border-radius:40px; padding:3px 10px; font-size:0.68rem; font-weight:700; }
+
+    /* ===== LAYOUTS ===== */
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    @media(max-width:768px){ .two-col { grid-template-columns:1fr; } }
+    .feature-row { display:grid; grid-template-columns:1fr 1.5fr; gap:1rem; margin-bottom:1.5rem; }
+    @media(max-width:900px){ .feature-row { grid-template-columns:1fr; } }
+    .bottom-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1.5rem; }
+    @media(max-width:768px){ .bottom-row { grid-template-columns:1fr; } }
+    .video-row { display:grid; grid-template-columns:1.5fr 1fr; gap:1rem; margin-top:1.5rem; }
+    @media(max-width:900px){ .video-row { grid-template-columns:1fr; } }
+
+    /* ===== NEXT RACE ===== */
+    .nextrace-img { width:100%; aspect-ratio:16/7; object-fit:cover; border-radius:14px; border:1px solid var(--f1-glow-red); margin-bottom:0.75rem; }
+    .schedule-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem; margin-top:0.75rem; }
+    .schedule-item { background:rgba(0,0,0,0.4); border-radius:12px; padding:0.6rem 0.4rem; text-align:center; transition:all 0.2s; }
+    .schedule-item:hover { background:rgba(225,6,0,0.18); transform:translateY(-2px); }
+    .schedule-day { font-size:0.62rem; text-transform:uppercase; letter-spacing:1px; color:var(--f1-glow-red); }
+    .schedule-name { font-weight:700; font-size:0.78rem; margin:2px 0; }
+    .schedule-date { font-size:0.62rem; color:#aaa; }
+    .countdown-display { font-size:clamp(1.5rem,4vw,2rem); font-weight:800; color:var(--f1-glow-red); text-shadow:0 0 20px rgba(225,6,0,0.5); letter-spacing:2px; }
+
+    /* ===== TABLES ===== */
+    .table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .table-f1 { width:100%; border-collapse:separate; border-spacing:0 6px; }
+    .table-f1 thead th { background:rgba(0,0,0,0.4); color:var(--f1-silver); font-weight:600; font-size:0.72rem; letter-spacing:0.5px; padding:10px 14px; border:none; text-transform:uppercase; white-space:nowrap; }
+    .table-f1 tbody tr { background:var(--f1-elevated); transition:0.2s; }
+    .table-f1 tbody tr:hover { background:rgba(225,6,0,0.07); }
+    .table-f1 tbody td { padding:12px 14px; border:none; vertical-align:middle; font-size:0.85rem; white-space:nowrap; }
+
+    /* ===== RACES ===== */
+    .races-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1rem; margin-bottom:2rem; }
+    .race-card { background:linear-gradient(135deg,#111116,#0a0a0f); border-radius:18px; overflow:hidden; border:1px solid rgba(225,6,0,0.2); transition:all 0.3s; }
+    .race-card:hover { transform:translateY(-4px); box-shadow:0 12px 28px rgba(225,6,0,0.18); border-color:var(--f1-glow-red); }
+    .race-card-img { width:100%; height:150px; object-fit:cover; border-bottom:2px solid var(--f1-glow-red); }
+    .race-card-body { padding:0.9rem; }
+    .winner-badge { background:linear-gradient(90deg,#e10600,#ff4d2e); border-radius:20px; padding:3px 10px; font-size:0.68rem; font-weight:700; display:inline-block; }
+
+    /* ===== CONSTRUCTORS ===== */
+    .constructors-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:1rem; }
+    .constructor-team-card { background:linear-gradient(135deg,#0f0f14,#0a0a0f); border-radius:18px; overflow:hidden; border:1px solid rgba(225,6,0,0.2); transition:all 0.3s; }
+    .constructor-team-card:hover { transform:translateY(-4px); border-color:var(--f1-glow-red); box-shadow:0 10px 24px rgba(225,6,0,0.18); }
+    .constructor-header { padding:1rem; text-align:center; border-bottom:2px solid var(--f1-glow-red); }
+    .constructor-logo { width:70px; height:70px; object-fit:contain; margin-bottom:0.5rem; }
+    .constructor-body { padding:0.9rem; }
+    .constructor-stat { display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px solid rgba(255,255,255,0.07); font-size:0.85rem; }
+    .constructor-stat:last-child { border-bottom:none; }
+
+    /* Constructor table team logo */
+    .constructor-table-logo {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    /* ===== PROFILE ===== */
+    .profile-avatar { background:linear-gradient(145deg,#1f1f2a,#0a0a0f); width:90px; height:90px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2.5rem; border:2px solid var(--f1-glow-red); }
+
+    /* ===== MISC ===== */
+    .search-filter { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:40px; padding:9px 16px; color:white; font-size:0.85rem; outline:none; transition:border-color 0.2s; min-width:0; }
+    .search-filter:focus { border-color:var(--f1-glow-red); }
+    .page-heading { font-size:clamp(1.2rem,3vw,1.8rem); font-weight:800; margin-bottom:1.2rem; }
+    .page-heading span { color:var(--f1-glow-red); }
+    .section-title { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--f1-muted); margin-bottom:0.75rem; display:flex; align-items:center; gap:6px; }
+    .section-title i { color:var(--f1-glow-red); }
+    .glow-text { text-shadow:0 0 8px rgba(225,6,0,0.5); }
+    .text-danger { color:var(--f1-glow-red)!important; }
+    .text-warning { color:#f5c518!important; }
+
+    /* About section text */
+    .about-text {
+      color: var(--f1-muted);
+      font-size: 0.85rem;
+      line-height: 1.8;
+      text-align: center;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .about-text strong {
+      color: var(--f1-glow-red);
+    }
+    .feature-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+    .feature-tag {
+      background: rgba(225,6,0,0.1);
+      border: 1px solid rgba(225,6,0,0.3);
+      border-radius: 40px;
+      padding: 5px 15px;
+      font-size: 0.7rem;
+      color: var(--f1-silver);
+      transition: all 0.2s;
+    }
+    .feature-tag:hover {
+      background: rgba(225,6,0,0.2);
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    footer { border-top:1px solid rgba(225,6,0,0.2); background:#050507; padding:1rem; text-align:center; font-size:0.78rem; color:var(--f1-muted); margin-top:2rem; }
+  </style>
+</head>
+<body>
+
+<!-- ===== DRIVER DETAIL MODAL ===== -->
+<div class="driver-modal-overlay" id="driverModal">
+  <div class="driver-modal" id="driverModalContent">
+    <!-- Content will be dynamically inserted -->
+  </div>
+</div>
+
+<!-- ===== ANIMATED AUTH ===== -->
+<div id="authSection">
+  <div class="auth-bg">
+    <div class="auth-grid"></div>
+    <div class="auth-scanline"></div>
+    <div class="stripe" style="left:8%;height:40vh;animation-duration:4s;animation-delay:0s;top:-40vh;"></div>
+    <div class="stripe" style="left:22%;height:30vh;animation-duration:5.5s;animation-delay:1s;top:-30vh;background:linear-gradient(to bottom,transparent,rgba(100,0,255,0.4),transparent);"></div>
+    <div class="stripe" style="left:40%;height:50vh;animation-duration:3.8s;animation-delay:0.4s;top:-50vh;"></div>
+    <div class="stripe" style="left:58%;height:35vh;animation-duration:6s;animation-delay:2s;top:-35vh;"></div>
+    <div class="stripe" style="left:72%;height:45vh;animation-duration:4.5s;animation-delay:0.8s;top:-45vh;"></div>
+    <div class="stripe" style="left:88%;height:38vh;animation-duration:5s;animation-delay:1.5s;top:-38vh;"></div>
+    <div class="speed-dot" style="width:300px;height:300px;top:10%;left:-5%;animation-duration:8s;"></div>
+    <div class="speed-dot" style="width:200px;height:200px;bottom:15%;right:-3%;animation-duration:10s;animation-delay:3s;"></div>
+    <div class="speed-dot" style="width:150px;height:150px;top:50%;left:60%;animation-duration:7s;animation-delay:1s;"></div>
+  </div>
+
+  <div style="position:relative;z-index:10;width:100%;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem;">
+    <div class="auth-card">
+      <div style="text-align:center;margin-bottom:1.5rem;">
+        <img class="auth-logo-img" src="picture/f1logo.png" alt="F1 Logo" onerror="this.src='https://placehold.co/72x72/e10600/white?text=F1';">
+        <div class="auth-title mt-2">Formula 1</div>
+        <div class="auth-sub">Team Management System</div>
+      </div>
+
+      <div id="loginPanel">
+        <div id="loginErrorMsg" style="display:none;background:rgba(225,6,0,0.15);border:1px solid rgba(225,6,0,0.4);border-radius:10px;padding:8px 12px;font-size:0.8rem;color:#ff7b6e;margin-bottom:1rem;">
+          &#9888;&#65039; Invalid username or password.
+        </div>
+        <div style="margin-bottom:0.9rem;">
+          <label class="f1-label">Username</label>
+          <input type="text" id="loginUsername" class="f1-input" placeholder="admin" value="admin">
+        </div>
+        <div style="margin-bottom:1.2rem;">
+          <label class="f1-label">Password</label>
+          <input type="password" id="loginPassword" class="f1-input" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;" value="f1admin">
+        </div>
+        <button class="btn-f1" onclick="handleLogin()"><i class="bi bi-box-arrow-in-right"></i> ACCESS DASHBOARD</button>
+        <div class="demo-hint">Demo: admin / f1admin</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="mainApp" style="display:none;">
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a class="navbar-brand-wrapper" href="#">
+        <img class="navbar-logo" src="picture/f1logo.png" alt="F1 Logo" onerror="this.src='https://placehold.co/60x60/e10600/white?text=F1';">
+        <span class="navbar-brand-text">F1 Team Management System</span>
+      </a>
+      <button class="nav-toggle" id="navToggle" aria-label="Menu"><i class="bi bi-list"></i></button>
+      <ul class="nav-menu" id="navMenu">
+        <li><a class="nav-link" href="#" data-page="dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+        <li><a class="nav-link" href="#" data-page="drivers"><i class="bi bi-people"></i> Drivers</a></li>
+        <li><a class="nav-link" href="#" data-page="races"><i class="bi bi-flag"></i> Race Results</a></li>
+        <li><a class="nav-link" href="#" data-page="constructors"><i class="bi bi-trophy"></i> Constructors</a></li>
+        <li><a class="nav-link" href="#" data-page="stats"><i class="bi bi-graph-up"></i> Team Stats</a></li>
+        <li><a class="nav-link" href="#" data-page="profile"><i class="bi bi-person-circle"></i> Profile</a></li>
+        <li><a class="nav-link danger" href="#" id="logoutBtn"><i class="bi bi-power"></i> Logout</a></li>
+      </ul>
+    </div>
+  </nav>
+  <div class="navbar-spacer"></div>
+
+  <div id="dynamicContent"></div>
+
+  <footer><i class="bi bi-cpu"></i> F1 Team Management System &nbsp;|&nbsp; &copy; 2026 F1 FATIN &nbsp;|&nbsp; <i class="bi bi-lightning-charge-fill text-danger"></i> Powered by Data</footer>
+</div>
+
+<script>
+  // ===== GLOBAL VARIABLES =====
+  let driverChart = null;
+  let constructorBarChart = null;
+  let podiumsDoughnutChart = null;
+  let countdownInterval = null;
+
+  // ===== DRIVER DETAIL DATA =====
+  const driverDetails = {
+    "Max Verstappen": {
+      number: "1",
+      nationality: "🇳🇱 Netherlands",
+      born: "30 September 1997",
+      age: "28",
+      podiums: "108",
+      wins: "63",
+      championships: "4",
+      team: "Red Bull Racing",
+      img: "picture/max.png",
+      photo: "picture/max_full.png",
+      bio: "Max Verstappen is a Dutch racing driver and four-time Formula One World Champion, winning consecutive titles from 2022 to 2025. Known for his aggressive driving style, exceptional car control, and remarkable consistency, Verstappen holds the record for most wins in a single season. He made his F1 debut at just 17 years old with Scuderia Toro Rosso in 2015, becoming the youngest driver in F1 history.",
+      highlight: "Youngest F1 race winner at 18 years, 228 days"
+    },
+    "Lando Norris": {
+      number: "4",
+      nationality: "🇬🇧 United Kingdom",
+      born: "13 November 1999",
+      age: "26",
+      podiums: "32",
+      wins: "8",
+      championships: "0",
+      team: "McLaren",
+      img: "picture/lando.png",
+      photo: "picture/lando_full.png",
+      bio: "Lando Norris is a British racing driver who has established himself as one of the most talented drivers on the grid. After winning the MSA Formula championship in 2015 and the Toyota Racing Series and Formula Renault Eurocup in 2016, Norris joined McLaren in 2019. Known for his consistency, race pace, and engaging personality, he secured his first F1 victory at the 2024 Miami Grand Prix and has been instrumental in McLaren's resurgence.",
+      highlight: "First F1 victory at 2024 Miami GP"
+    }
+  };
+
+  // ===== DATA =====
+  const driversData = [
+    { pos:1, name:"Max Verstappen", team:"Red Bull Racing", points:251, wins:6, podiums:10, nationality:"🇳🇱", img:"picture/max.png" },
+    { pos:2, name:"Lando Norris", team:"McLaren", points:220, wins:4, podiums:8, nationality:"🇬🇧", img:"picture/lando.png" },
+    { pos:3, name:"Charles Leclerc", team:"Ferrari", points:198, wins:3, podiums:7, nationality:"🇲🇨", img:"picture/leclerc.png" },
+    { pos:4, name:"Oscar Piastri", team:"McLaren", points:185, wins:2, podiums:6, nationality:"🇦🇺", img:"picture/oscar.png" },
+    { pos:5, name:"Carlos Sainz", team:"Ferrari", points:171, wins:2, podiums:5, nationality:"🇪🇸", img:"picture/sainz.png" },
+    { pos:6, name:"George Russell", team:"Mercedes", points:156, wins:1, podiums:4, nationality:"🇬🇧", img:"picture/george.png" },
+    { pos:7, name:"Lewis Hamilton", team:"Mercedes", points:148, wins:1, podiums:4, nationality:"🇬🇧", img:"picture/hamilton.png" },
+    { pos:8, name:"Sergio Perez", team:"Red Bull Racing", points:144, wins:2, podiums:5, nationality:"🇲🇽", img:"picture/perez.png" },
+    { pos:9, name:"Nico Hulkenberg", team:"Audi", points:24, wins:0, podiums:0, nationality:"🇩🇪", img:"picture/hulkenberg.png" },
+    { pos:10, name:"Mick Schumacher", team:"Audi", points:18, wins:0, podiums:0, nationality:"🇩🇪", img:"picture/schumacher.png" },
+    { pos:11, name:"Esteban Ocon", team:"Haas", points:14, wins:0, podiums:0, nationality:"🇫🇷", img:"picture/ocon.png" },
+    { pos:12, name:"Oliver Bearman", team:"Haas", points:10, wins:0, podiums:0, nationality:"🇬🇧", img:"picture/bearman.png" },
+    { pos:13, name:"Yuki Tsunoda", team:"Racing Bulls", points:22, wins:0, podiums:0, nationality:"🇯🇵", img:"picture/tsunoda.png" },
+    { pos:14, name:"Liam Lawson", team:"Racing Bulls", points:16, wins:0, podiums:0, nationality:"🇳🇿", img:"picture/lawson.png" }
+  ];
+
+  const constructorsData = [
+    { pos:1, name:"Red Bull Racing", points:428, wins:8, podiums:15, color:"#0600ef", logo:"picture/logo_rb.png", engine:"Honda RBPT", base:"Milton Keynes" },
+    { pos:2, name:"McLaren", points:395, wins:6, podiums:14, color:"#ff8000", logo:"picture/logo_ml.png", engine:"Mercedes", base:"Woking" },
+    { pos:3, name:"Ferrari", points:376, wins:5, podiums:12, color:"#e8002d", logo:"picture/logo_ferrari.png", engine:"Ferrari", base:"Maranello" },
+    { pos:4, name:"Mercedes", points:311, wins:2, podiums:9, color:"#27f4d2", logo:"picture/logo_merc.png", engine:"Mercedes", base:"Brackley" },
+    { pos:5, name:"Aston Martin", points:86, wins:0, podiums:1, color:"#006f62", logo:"picture/logo_am.png", engine:"Mercedes", base:"Silverstone" },
+    { pos:6, name:"Audi", points:45, wins:0, podiums:0, color:"#c0c0c0", logo:"picture/logo_audi.png", engine:"Audi", base:"Neuburg" },
+    { pos:7, name:"Haas", points:24, wins:0, podiums:0, color:"#ffffff", logo:"picture/logo_haas.png", engine:"Ferrari", base:"Kannapolis" },
+    { pos:8, name:"Racing Bulls", points:38, wins:0, podiums:0, color:"#6692ff", logo:"picture/logo_rb2.png", engine:"Honda RBPT", base:"Faenza" }
+  ];
+
+  const raceResults = [
+    { rd:16, gp:"Italian GP", circuit:"Monza", winner:"Lando Norris", winnerImg:"picture/lando.png", fastestLap:"Leclerc", date:"01 Sep 2026", status:"Complete", flag:"🇮🇹", circuitImg:"picture/track_1.jpg" },
+    { rd:15, gp:"Dutch GP", circuit:"Zandvoort", winner:"Max Verstappen", winnerImg:"picture/max.png", fastestLap:"Norris", date:"25 Aug 2026", status:"Complete", flag:"🇳🇱", circuitImg:"picture/track_2.jpg" },
+    { rd:14, gp:"Belgian GP", circuit:"Spa-Francorchamps", winner:"Oscar Piastri", winnerImg:"picture/oscar.png", fastestLap:"Verstappen", date:"28 Jul 2026", status:"Complete", flag:"🇧🇪", circuitImg:"picture/track_3.jpg" },
+    { rd:13, gp:"Hungarian GP", circuit:"Hungaroring", winner:"Oscar Piastri", winnerImg:"picture/oscar.png", fastestLap:"Norris", date:"21 Jul 2026", status:"Complete", flag:"🇭🇺", circuitImg:"picture/track_4.jpg" },
+    { rd:12, gp:"British GP", circuit:"Silverstone", winner:"Lando Norris", winnerImg:"picture/lando.png", fastestLap:"Piastri", date:"07 Jul 2026", status:"Complete", flag:"🇬🇧", circuitImg:"picture/track_5.jpg" },
+    { rd:11, gp:"Austrian GP", circuit:"Red Bull Ring", winner:"George Russell", winnerImg:"picture/george.png", fastestLap:"Verstappen", date:"30 Jun 2026", status:"Complete", flag:"🇦🇹", circuitImg:"picture/track_6.jpg" },
+    { rd:10, gp:"Spanish GP", circuit:"Circuit de Barcelona-Catalunya", winner:"Max Verstappen", winnerImg:"picture/max.png", fastestLap:"Norris", date:"01 Jun 2026", status:"Complete", flag:"🇪🇸", circuitImg:"picture/track_7.jpg" },
+    { rd:9, gp:"Monaco GP", circuit:"Circuit de Monaco", winner:"Charles Leclerc", winnerImg:"picture/charles.png", fastestLap:"Sainz", date:"25 May 2026", status:"Complete", flag:"🇲🇨", circuitImg:"picture/track_8.jpg" }
+  ];
+
+  const upcomingRace = {
+    name: "Singapore Grand Prix",
+    circuit: "Marina Bay Street Circuit",
+    flag: "🇸🇬",
+    circuitImg: "picture/singapore.png",
+    fp1: "Fri, 20 June 2026 · 11:30",
+    fp2: "Fri, 20 June 2026 · 15:00",
+    fp3: "Sat, 21 June 2026 · 12:00",
+    qualifying: "Sat, 21 June 2026 · 15:00",
+    raceDate: "Sun, 22 June 2026 · 13:00"
+  };
+
+  // ===== AUTH FUNCTIONS =====
+  function handleLogin() {
+    const user = document.getElementById("loginUsername").value;
+    const pass = document.getElementById("loginPassword").value;
+    if(user === "admin" && pass === "f1admin") {
+      document.getElementById("authSection").style.display = "none";
+      document.getElementById("mainApp").style.display = "block";
+      renderPage("dashboard");
+      setActiveNav("dashboard");
+    } else {
+      const errDiv = document.getElementById("loginErrorMsg");
+      errDiv.style.display = "block";
+      setTimeout(()=> errDiv.style.display = "none", 2500);
+    }
+  }
+
+  // ===== DRIVER MODAL =====
+  function openDriverModal(driverName) {
+    const details = driverDetails[driverName];
+    if (!details) return;
+    
+    const modal = document.getElementById('driverModal');
+    const content = document.getElementById('driverModalContent');
+    
+    content.innerHTML = `
+      <button class="driver-modal-close" onclick="closeDriverModal()">&times;</button>
+      <div class="driver-modal-number">#${details.number}</div>
+      <div class="driver-modal-header">
+        <img class="driver-modal-avatar" src="${details.img}" alt="${driverName}" onerror="this.src='https://placehold.co/100x100/e10600/white?text=${driverName.charAt(0)}';">
+        <div class="driver-modal-info">
+          <h3>${driverName}</h3>
+          <span class="badge-f1">${details.team}</span>
+          <p style="color:var(--f1-muted);font-size:0.8rem;margin-top:0.3rem;">${details.nationality}</p>
+        </div>
+      </div>
+      <div class="driver-bio">${details.bio}</div>
+      <span class="driver-highlight"><i class="bi bi-star-fill"></i> ${details.highlight}</span>
+      <div class="driver-stat-grid">
+        <div class="driver-stat-box">
+          <div class="stat-value">${details.age}</div>
+          <div class="stat-label">Age</div>
+        </div>
+        <div class="driver-stat-box">
+          <div class="stat-value">${details.wins}</div>
+          <div class="stat-label">Wins</div>
+        </div>
+        <div class="driver-stat-box">
+          <div class="stat-value">${details.podiums}</div>
+          <div class="stat-label">Podiums</div>
+        </div>
+        <div class="driver-stat-box">
+          <div class="stat-value">${details.championships}x</div>
+          <div class="stat-label">World Champion</div>
+        </div>
+      </div>
+      <img class="driver-modal-photo" src="${details.photo}" alt="${driverName} full photo" onerror="this.src='https://placehold.co/600x300/1a1a2e/e10600?text=${driverName.replace(' ', '+')}';">
+    `;
+    
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDriverModal() {
+    document.getElementById('driverModal').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('driverModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDriverModal();
+  });
+
+  // ===== NAVIGATION =====
+  document.getElementById('navToggle').addEventListener('click', () => {
+    document.getElementById('navMenu').classList.toggle('open');
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.nav-link')) document.getElementById('navMenu').classList.remove('open');
+  });
+
+  function setActiveNav(page) {
+    document.querySelectorAll('.nav-link[data-page]').forEach(link => {
+      if(link.getAttribute('data-page') === page) link.classList.add('active');
+      else link.classList.remove('active');
+    });
+  }
+
+  // ===== CHART DESTRUCTION =====
+  function destroyAllCharts() {
+    if (driverChart) {
+      driverChart.destroy();
+      driverChart = null;
+    }
+    if (constructorBarChart) {
+      constructorBarChart.destroy();
+      constructorBarChart = null;
+    }
+    if (podiumsDoughnutChart) {
+      podiumsDoughnutChart.destroy();
+      podiumsDoughnutChart = null;
+    }
+  }
+
+  // ===== COUNTDOWN =====
+  function startCountdown() {
+    if (countdownInterval) clearInterval(countdownInterval);
+    const target = new Date(upcomingRace.raceDate.split(' · ')[0] + ' ' + upcomingRace.raceDate.split(' · ')[1]).getTime();
+    countdownInterval = setInterval(() => {
+      const now = new Date().getTime();
+      const diff = target - now;
+      if(diff <= 0) {
+        const cdDiv = document.getElementById('countdownTimer');
+        if(cdDiv) cdDiv.innerHTML = `<span style="color:#4ef08c;">&#x1F3C1; RACE IN PROGRESS &#x1F3C1;</span>`;
+        clearInterval(countdownInterval); return;
+      }
+      const days = Math.floor(diff/(1000*60*60*24));
+      const hrs  = Math.floor((diff%(1000*60*60*24))/(1000*60*60));
+      const mins = Math.floor((diff%(1000*60*60))/(1000*60));
+      const secs = Math.floor((diff%(1000*60))/1000);
+      const cdDiv = document.getElementById('countdownTimer');
+      if(cdDiv) cdDiv.innerHTML = `${days}d ${hrs}h ${mins}m ${secs}s`;
+    }, 1000);
+  }
+
+  // ===== RENDER PAGES =====
+  function renderPage(page) {
+    destroyAllCharts();
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+    
+    const container = document.getElementById("dynamicContent");
+    if (!container) return;
+    
+    if (page === "dashboard") renderDashboard(container);
+    else if (page === "drivers") renderDriversPage(container);
+    else if (page === "races") renderRacesPage(container);
+    else if (page === "constructors") renderConstructorsPage(container);
+    else if (page === "stats") renderStatsPage(container);
+    else if (page === "profile") renderProfilePage(container);
+  }
+
+  function renderDashboard(container) {
+    container.innerHTML = `
+    <div class="title-section">
+      <h1 class="main-dashboard-title">Oracle Red Bull Racing</h1>
+      <span class="title-badge">Red Bull gives you wings</span>
+    </div>
+    <div class="page-content">
+      <div class="hero-f1">
+        <img class="hero-img" src="picture/redbull_car.jpg" alt="Formula 1 Red Bull Racing"
+             onerror="this.onerror=null;this.src='https://placehold.co/1600x600/1a1a2e/e10600?text=F1+HERO';">
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
+        <div style="color:var(--f1-muted);font-size:0.8rem;"><i class="bi bi-clock"></i> <span id="liveClock"></span></div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card"><span class="kpi-icon">&#x1F3C6;</span><div class="kpi-value text-danger">1st</div><div class="kpi-label">Championship</div></div>
+        <div class="kpi-card"><span class="kpi-icon">&#x1F4CA;</span><div class="kpi-value text-warning">428</div><div class="kpi-label">Team Points</div></div>
+        <div class="kpi-card"><span class="kpi-icon">&#x1F947;</span><div class="kpi-value" style="color:#4ade80;">15</div><div class="kpi-label">Podiums</div></div>
+        <div class="kpi-card"><span class="kpi-icon">&#x1F4CD;</span><div class="kpi-value" style="color:#38bdf8;">SGP</div><div class="kpi-label">Next: Singapore</div></div>
+      </div>
+
+      <!-- About Section -->
+      <div class="stat-card" style="margin-bottom:1.5rem;text-align:center;">
+        <div class="section-title" style="justify-content:center;"><i class="bi bi-info-circle-fill"></i> ABOUT THE F1 TEAM MANAGEMENT SYSTEM</div>
+        <p class="about-text">
+          Welcome to the <strong>ultimate F1 analytics hub</strong> — your command center for real-time Formula 1 data. 
+          Track <strong>driver standings</strong>, analyze <strong>constructor championships</strong>, and dive deep into 
+          <strong>race results</strong> with our cutting-edge dashboard. Built for <strong>team principals</strong>, 
+          <strong>engineers</strong>, and <strong>passionate fans</strong>, this platform delivers comprehensive insights 
+          into the world's most prestigious motorsport. From <strong>live countdowns</strong> to the next Grand Prix 
+          to detailed <strong>performance metrics</strong>, every feature is designed to keep you ahead of the pack.
+        </p>
+        <div class="feature-list">
+          <span class="feature-tag"><i class="bi bi-graph-up-arrow"></i> Live Analytics</span>
+          <span class="feature-tag"><i class="bi bi-people-fill"></i> Driver Profiles</span>
+          <span class="feature-tag"><i class="bi bi-trophy-fill"></i> Championship Tracking</span>
+          <span class="feature-tag"><i class="bi bi-calendar-event"></i> Race Scheduling</span>
+          <span class="feature-tag"><i class="bi bi-bar-chart-line"></i> Performance Charts</span>
+          <span class="feature-tag"><i class="bi bi-database"></i> Historical Data</span>
+        </div>
+      </div>
+
+      <div class="feature-row">
+        <div class="stat-card">
+          <div class="section-title"><i class="bi bi-star-fill"></i> FEATURED DRIVERS <small style="color:var(--f1-muted);font-weight:400;">(Click for details)</small></div>
+          <div class="driver-card" onclick="openDriverModal('Max Verstappen')">
+            <img class="driver-avatar-img" src="picture/max.png" alt="Max Verstappen" onerror="this.src='https://placehold.co/72x72/0600ef/white?text=MV';">
+            <div>
+              <div style="font-weight:800;font-size:1rem;">MAX VERSTAPPEN</div>
+              <span class="badge-f1">#1 Red Bull Racing</span>
+              <div class="driver-stats">
+                <div class="driver-stat-item"><small>Wins</small><div class="val">6</div></div>
+                <div class="driver-stat-item"><small>Podiums</small><div class="val">10</div></div>
+                <div class="driver-stat-item"><small>Points</small><div class="val text-warning">251</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="driver-card" style="margin-top:0.75rem;" onclick="openDriverModal('Lando Norris')">
+            <img class="driver-avatar-img" src="picture/lando.png" alt="Lando Norris" onerror="this.src='https://placehold.co/72x72/ff8000/white?text=LN';">
+            <div>
+              <div style="font-weight:800;font-size:1rem;">LANDO NORRIS</div>
+              <span class="badge-f1">#4 McLaren</span>
+              <div class="driver-stats">
+                <div class="driver-stat-item"><small>Wins</small><div class="val">4</div></div>
+                <div class="driver-stat-item"><small>Podiums</small><div class="val">8</div></div>
+                <div class="driver-stat-item"><small>Points</small><div class="val text-warning">220</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="section-title"><i class="bi bi-bar-chart"></i> DRIVER POINTS COMPARISON</div>
+          <canvas id="driverPointsChart" style="max-height:280px;width:100%;"></canvas>
+        </div>
+      </div>
+
+      <!-- Video Section -->
+      <div class="video-row" style="margin-bottom:1.5rem;">
+        <div class="stat-card" style="padding:0;overflow:hidden;">
+          <div style="padding:0.9rem 1.1rem;border-bottom:1px solid rgba(225,6,0,0.25);">
+            <div class="section-title" style="margin-bottom:0;"><i class="bi bi-play-btn-fill"></i> 2026 SEASON HIGHLIGHTS</div>
+          </div>
+          <div class="video-wrapper">
+            <video controls>
+              <source src="picture/f1_video.mp4" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="section-title"><i class="bi bi-lightbulb-fill"></i> WHY THIS PLATFORM?</div>
+          <img class="platform-image" src="picture/platform_dashboard.jpg" alt="F1 Platform Dashboard" onerror="this.src='https://placehold.co/600x340/1a1a2e/e10600?text=F1+Dashboard+Platform';">
+          <p style="color:var(--f1-muted);font-size:0.8rem;line-height:1.7;margin-bottom:1rem;">
+            The <strong style="color:var(--f1-glow-red);">F1 Team Management System</strong> is more than just a dashboard — it's your 
+            <strong style="color:var(--f1-silver);">strategic advantage</strong>. Designed with the precision of Formula 1 engineering, 
+            this platform consolidates <strong style="color:var(--f1-glow-red);">real-time data</strong>, 
+            <strong style="color:var(--f1-silver);">historical analytics</strong>, and 
+            <strong style="color:var(--f1-glow-red);">performance insights</strong> into one seamless interface.
+          </p>
+          <p style="color:var(--f1-muted);font-size:0.8rem;line-height:1.7;">
+            Whether you're monitoring <strong style="color:var(--f1-silver);">championship standings</strong>, analyzing 
+            <strong style="color:var(--f1-glow-red);">driver performance</strong>, or preparing for the 
+            <strong style="color:var(--f1-silver);">next race weekend</strong>, our tools give you the edge 
+            that makes champions. <strong style="color:var(--f1-glow-red);">Speed. Precision. Victory.</strong>
+          </p>
+        </div>
+      </div>
+
+      <div class="bottom-row">
+        <div class="stat-card">
+          <div class="section-title"><i class="bi bi-calendar-event"></i> NEXT GRAND PRIX &nbsp;${upcomingRace.flag} ${upcomingRace.name}</div>
+          <img class="nextrace-img" src="${upcomingRace.circuitImg}" alt="${upcomingRace.circuit}" onerror="this.src='https://placehold.co/400x160/1a1a2e/e10600?text=Circuit';">
+          <div style="text-align:center;margin-bottom:0.5rem;">
+            <div id="countdownTimer" class="countdown-display glow-text">-- : -- : --</div>
+            <small style="color:var(--f1-muted);">until RACE DAY</small>
+          </div>
+          <div class="schedule-grid">
+            <div class="schedule-item">
+              <div class="schedule-day">FRIDAY</div>
+              <div class="schedule-name">FP1 + FP2</div>
+              <div class="schedule-date">${upcomingRace.fp1.split(' · ')[0]}</div>
+              <small style="color:#888;">${upcomingRace.fp1.split(' · ')[1]} / ${upcomingRace.fp2.split(' · ')[1]}</small>
+            </div>
+            <div class="schedule-item">
+              <div class="schedule-day">SATURDAY</div>
+              <div class="schedule-name">FP3 + QUALI</div>
+              <div class="schedule-date">${upcomingRace.qualifying.split(' · ')[0]}</div>
+              <small style="color:#888;">FP3: ${upcomingRace.fp3.split(' · ')[1]} | Q: ${upcomingRace.qualifying.split(' · ')[1]}</small>
+            </div>
+            <div class="schedule-item">
+              <div class="schedule-day">SUNDAY</div>
+              <div class="schedule-name">RACE DAY</div>
+              <div class="schedule-date">${upcomingRace.raceDate.split(' · ')[0]}</div>
+              <small style="color:#888;">${upcomingRace.raceDate.split(' · ')[1]}</small>
+            </div>
+          </div>
+          <div style="margin-top:0.75rem;text-align:center;font-size:0.78rem;color:var(--f1-muted);"><i class="bi bi-geo-alt-fill text-danger"></i> ${upcomingRace.circuit}</div>
+        </div>
+
+        <div class="stat-card" style="padding:0;overflow:hidden;">
+          <div style="padding:0.9rem 1.1rem;border-bottom:1px solid rgba(225,6,0,0.25);">
+            <div class="section-title" style="margin-bottom:0;"><i class="bi bi-trophy-fill"></i> CONSTRUCTORS CHAMPIONSHIP 2026</div>
+            <small style="color:var(--f1-muted);">Full team standings</small>
+          </div>
+          <div class="table-scroll">
+            <table class="table-f1">
+              <thead><tr><th>#</th><th>Team</th><th>Points</th><th>Wins</th><th>Podiums</th><th>Engine</th></tr></thead>
+              <tbody>
+                ${constructorsData.map(c => `
+                  <tr>
+                    <td style="font-weight:700;color:var(--f1-glow-red);">${c.pos}</td>
+                    <td>
+                      <img class="constructor-table-logo" src="${c.logo}" alt="${c.name}" onerror="this.style.display='none';">
+                      <strong>${c.name}</strong>
+                    </td>
+                    <td style="color:#f5c518;font-weight:700;">${c.points}</td>
+                    <td>${c.wins}</td>
+                    <td>${c.podiums}</td>
+                    <td style="color:var(--f1-muted);">${c.engine}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    // Update clock
+    const updateClock = () => { const cl = document.getElementById("liveClock"); if(cl) cl.innerText = new Date().toUTCString().slice(0,25); };
+    updateClock(); 
+    setInterval(updateClock,1000);
+
+    // Create driver chart with delay
+    setTimeout(() => {
+      const ctx = document.getElementById('driverPointsChart')?.getContext('2d');
+      if(ctx) {
+        driverChart = new Chart(ctx, {
+          type:'bar',
+          data:{ 
+            labels:['Verstappen','Norris','Leclerc','Piastri','Sainz'], 
+            datasets:[{ 
+              label:'Points', 
+              data:[251,220,198,185,171], 
+              backgroundColor:'#0600ef', 
+              borderRadius:10 
+            }] 
+          },
+          options:{ 
+            responsive:true, 
+            maintainAspectRatio:true, 
+            plugins:{ 
+              legend:{ labels:{ color:'#aaa' } } 
+            }, 
+            scales:{ 
+              y:{ grid:{ color:'#222' }, ticks:{ color:'#ccc' } }, 
+              x:{ ticks:{ color:'#ccc' } } 
+            } 
+          }
+        });
+      }
+    }, 150);
+    
+    startCountdown();
+  }
+
+  function renderDriversPage(container) {
+    container.innerHTML = `
+      <div class="page-content">
+        <h2 class="page-heading">DRIVER STANDINGS <span>2026</span></h2>
+        <div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.2rem;">
+          <input type="text" id="driverSearchInput" class="search-filter" placeholder="&#x1F50D; Search driver..." style="flex:1;min-width:150px;">
+          <select id="teamFilterSelect" class="search-filter" style="min-width:140px;">
+            <option value="">All Teams</option>
+            <option value="Red Bull Racing">Red Bull Racing</option>
+            <option value="McLaren">McLaren</option>
+            <option value="Ferrari">Ferrari</option>
+            <option value="Mercedes">Mercedes</option>
+            <option value="Audi">Audi</option>
+            <option value="Haas">Haas</option>
+            <option value="Racing Bulls">Racing Bulls</option>
+          </select>
+        </div>
+        <div class="stat-card" style="padding:0;overflow:hidden;">
+          <div class="table-scroll">
+            <table class="table-f1"><thead><tr><th>POS</th><th>Driver</th><th>Team</th><th>Points</th><th>Wins</th><th>Podiums</th></tr></thead><tbody id="driversTableBody"></tbody></table>
+          </div>
+        </div>
+      </div>`;
+    filterDriversTable();
+    document.getElementById("driverSearchInput")?.addEventListener("input", filterDriversTable);
+    document.getElementById("teamFilterSelect")?.addEventListener("change", filterDriversTable);
+  }
+
+  function filterDriversTable() {
+    const search = document.getElementById("driverSearchInput")?.value.toLowerCase() || "";
+    const team = document.getElementById("teamFilterSelect")?.value || "";
+    const filtered = driversData.filter(d => d.name.toLowerCase().includes(search) && (team === "" || d.team === team));
+    const tbody = document.getElementById("driversTableBody");
+    if(tbody) tbody.innerHTML = filtered.map(d=>`<tr><td style="font-weight:700;color:var(--f1-glow-red);">${d.pos}</td><td>${d.nationality} ${d.name}</td><td>${d.team}</td><td style="font-weight:700;color:#f5c518;">${d.points}</td><td>${d.wins}</td><td>${d.podiums}</td></tr>`).join('');
+  }
+
+  function renderRacesPage(container) {
+    container.innerHTML = `
+      <div class="page-content">
+        <h2 class="page-heading">GRAND PRIX RESULTS <span>2026</span></h2>
+        <p style="color:var(--f1-muted);margin-bottom:1.2rem;font-size:0.85rem;"><i class="bi bi-info-circle"></i> Each race card shows the circuit and winner</p>
+        <div class="races-grid">
+          ${raceResults.map(race=>`
+            <div class="race-card">
+              <img class="race-card-img" src="${race.circuitImg}" alt="${race.gp}" onerror="this.src='https://placehold.co/400x150/1a1a2e/e10600?text=${race.circuit}';">
+              <div class="race-card-body">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem;">
+                  <h5 style="font-weight:800;font-size:0.95rem;margin:0;">${race.flag} ${race.gp}</h5>
+                  <span class="badge-f1">Rd ${race.rd}</span>
+                </div>
+                <p style="font-size:0.78rem;color:var(--f1-muted);margin-bottom:0.5rem;"><i class="bi bi-geo-alt"></i> ${race.circuit}</p>
+                <div style="display:flex;align-items:center;gap:0.6rem;">
+                  <img src="${race.winnerImg}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:1px solid var(--f1-glow-red);" onerror="this.src='https://placehold.co/38x38/e10600/white?text=W';">
+                  <div><span class="winner-badge">WINNER</span><p style="font-weight:800;color:var(--f1-glow-red);margin:0;font-size:0.85rem;">${race.winner}</p></div>
+                </div>
+                <hr style="border-color:rgba(225,6,0,0.2);margin:0.6rem 0;">
+                <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--f1-muted);">
+                  <span><i class="bi bi-stopwatch"></i> ${race.fastestLap}</span>
+                  <span><i class="bi bi-calendar"></i> ${race.date}</span>
+                </div>
+              </div>
+            </div>`).join('')}
+        </div>
+        <div class="stat-card" style="padding:0;overflow:hidden;">
+          <div style="padding:0.9rem 1.1rem;border-bottom:1px solid rgba(225,6,0,0.25);">
+            <h5 style="margin:0;font-size:0.95rem;"><i class="bi bi-table"></i> Detailed Race Results</h5>
+          </div>
+          <div class="table-scroll">
+            <table class="table-f1">
+              <thead><tr><th>Rd</th><th>Grand Prix</th><th>Circuit</th><th>Winner</th><th>Fastest Lap</th><th>Date</th><th>Status</th></tr></thead>
+              <tbody>${raceResults.map(r=>`<tr><td style="font-weight:700;">${r.rd}</td><td>${r.flag} ${r.gp}</td><td>${r.circuit}</td><td style="color:var(--f1-glow-red);font-weight:700;">&#x1F3C6; ${r.winner}</td><td>${r.fastestLap}</td><td>${r.date}</td><td><span class="badge-f1">&#10003; ${r.status}</span></td></tr>`).join('')}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderConstructorsPage(container) {
+    container.innerHTML = `
+      <div class="page-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;flex-wrap:wrap;gap:0.5rem;">
+          <h2 class="page-heading" style="margin:0;">CONSTRUCTORS <span>CHAMPIONSHIP 2026</span></h2>
+          <i class="bi bi-trophy-fill" style="font-size:2rem;color:#f5c518;"></i>
+        </div>
+        <div class="constructors-grid">
+          ${constructorsData.map(team=>`
+            <div class="constructor-team-card">
+              <div class="constructor-header" style="background:linear-gradient(135deg,${team.color}25,#00000070);">
+                <img class="constructor-logo" src="${team.logo}" alt="${team.name}" onerror="this.src='https://placehold.co/70x70/${team.color.substring(1)}/white?text=${team.name.charAt(0)}';">
+                <h5 style="font-weight:800;font-size:0.95rem;margin-top:0.4rem;">${team.name}</h5>
+                <span class="badge-f1">Position #${team.pos}</span>
+              </div>
+              <div class="constructor-body">
+                <div class="constructor-stat"><span><i class="bi bi-bar-chart"></i> Points</span><strong style="color:#f5c518;font-size:1.2rem;">${team.points}</strong></div>
+                <div class="constructor-stat"><span><i class="bi bi-trophy"></i> Wins</span><strong>${team.wins}</strong></div>
+                <div class="constructor-stat"><span><i class="bi bi-award"></i> Podiums</span><strong>${team.podiums}</strong></div>
+                <div class="constructor-stat"><span><i class="bi bi-gear"></i> Engine</span><strong>${team.engine}</strong></div>
+                <div class="constructor-stat"><span><i class="bi bi-building"></i> Base</span><strong>${team.base}</strong></div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  function renderStatsPage(container) {
+    container.innerHTML = `
+      <div class="page-content">
+        <h2 class="page-heading">TEAM STATISTICS <span>ANALYTICS</span></h2>
+        <div class="two-col" style="margin-bottom:1.2rem;">
+          <div class="stat-card">
+            <div class="section-title"><i class="bi bi-bar-chart-steps"></i> CONSTRUCTOR POINTS (2026)</div>
+            <canvas id="constructorChartStats" style="max-height:280px;width:100%;"></canvas>
+          </div>
+          <div class="stat-card">
+            <div class="section-title"><i class="bi bi-pie-chart"></i> PODIUMS DISTRIBUTION</div>
+            <canvas id="podiumsChartStats" style="max-height:280px;width:100%;"></canvas>
+          </div>
+        </div>
+
+        <div class="stat-card" style="padding:0;overflow:hidden;margin-bottom:1.2rem;">
+          <div style="padding:0.9rem 1.1rem;border-bottom:1px solid rgba(225,6,0,0.25);">
+            <h5 style="margin:0;font-size:0.95rem;"><i class="bi bi-table"></i> COMPLETE CONSTRUCTOR STANDINGS</h5>
+            <small style="color:var(--f1-muted);">Detailed performance metrics by team</small>
+          </div>
+          <div class="table-scroll">
+            <table class="table-f1">
+              <thead><tr><th>#</th><th>Team</th><th>Points</th><th>Wins</th><th>Podiums</th><th>Win Rate</th><th>Podium Rate</th><th>Avg Points/Race</th></tr></thead>
+              <tbody>
+                ${constructorsData.map(c => {
+                  const winRate = ((c.wins / 16) * 100).toFixed(1);
+                  const podiumRate = ((c.podiums / 16) * 100).toFixed(1);
+                  const avgPoints = (c.points / 16).toFixed(1);
+                  return `<tr><td style="color:var(--f1-glow-red);font-weight:700;">${c.pos}</td><td><strong>${c.name}</strong></td><td style="color:#f5c518;font-weight:700;">${c.points}</td><td>${c.wins}</td><td>${c.podiums}</td><td>${winRate}%</td><td>${podiumRate}%</td><td>${avgPoints}</td></tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="stat-card" style="text-align:center;">
+            <i class="bi bi-trophy-fill" style="font-size:2rem;color:var(--f1-glow-red);"></i>
+            <h6 style="margin-top:0.5rem;">Most Wins</h6>
+            <h4 style="color:#f5c518;">Red Bull Racing (8 wins)</h4>
+          </div>
+          <div class="stat-card" style="text-align:center;">
+            <i class="bi bi-award-fill" style="font-size:2rem;color:#4ade80;"></i>
+            <h6 style="margin-top:0.5rem;">Most Podiums</h6>
+            <h4 style="color:#f5c518;">Red Bull Racing (15 podiums)</h4>
+          </div>
+        </div>
+      </div>`;
+
+    setTimeout(() => {
+      const ctxBar = document.getElementById('constructorChartStats')?.getContext('2d');
+      if(ctxBar) {
+        constructorBarChart = new Chart(ctxBar, { 
+          type:'bar', 
+          data:{ 
+            labels:constructorsData.map(c=>c.name), 
+            datasets:[{ 
+              label:'Points', 
+              data:constructorsData.map(c=>c.points), 
+              backgroundColor:constructorsData.map(c=>c.color), 
+              borderRadius:8 
+            }] 
+          }, 
+          options:{ 
+            responsive:true, 
+            maintainAspectRatio:true, 
+            plugins:{ 
+              legend:{ labels:{ color:'#aaa' } } 
+            }, 
+            scales:{ 
+              y:{ grid:{ color:'#222' }, ticks:{ color:'#ccc' } }, 
+              x:{ ticks:{ color:'#ccc', maxRotation:30 } } 
+            } 
+          } 
+        });
+      }
+      
+      const ctxPie = document.getElementById('podiumsChartStats')?.getContext('2d');
+      if(ctxPie) {
+        podiumsDoughnutChart = new Chart(ctxPie, { 
+          type:'doughnut', 
+          data:{ 
+            labels:['Red Bull Racing','McLaren','Ferrari','Mercedes','Aston Martin','Others'], 
+            datasets:[{ 
+              data:[15,14,12,9,5,3], 
+              backgroundColor:['#0600ef','#ff8000','#e8002d','#27f4d2','#006f62','#c0c0c0'], 
+              borderWidth:2, 
+              borderColor:'#0a0a0c' 
+            }] 
+          }, 
+          options:{ 
+            responsive:true, 
+            maintainAspectRatio:true, 
+            plugins:{ 
+              legend:{ 
+                position:'bottom', 
+                labels:{ color:'#fff', font:{ size:11 } } 
+              } 
+            } 
+          } 
+        });
+      }
+    }, 200);
+  }
+
+  function renderProfilePage(container) {
+    container.innerHTML = `
+      <div class="page-content">
+        <div style="max-width:480px;margin:0 auto;">
+          <div class="stat-card" style="text-align:center;padding:2rem 1.5rem;">
+            <div class="profile-avatar" style="margin:0 auto 1rem;">
+              <i class="bi bi-person-badge" style="font-size:2.5rem;color:var(--f1-glow-red);"></i>
+            </div>
+            <h3>Fatin Amizan</h3>
+            <p style="color:var(--f1-glow-red);">Team Principal</p>
+            <hr style="border-color:rgba(255,255,255,0.1);margin:1rem 0;">
+            <div style="text-align:left;">
+              <p style="margin-bottom:0.6rem;"><i class="bi bi-envelope"></i> <strong>Email:</strong> fatin.amizan@redbullracing.com</p>
+              <p style="margin-bottom:0.6rem;"><i class="bi bi-diagram-3"></i> <strong>Department:</strong> Racing Operations</p>
+              <p><i class="bi bi-calendar"></i> <strong>Member since:</strong> 2010</p>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ===== EVENT LISTENERS =====
+  document.querySelectorAll('.nav-link[data-page]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = link.getAttribute('data-page');
+      renderPage(page);
+      setActiveNav(page);
+    });
+  });
+
+  document.getElementById("logoutBtn")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    document.getElementById("mainApp").style.display = "none";
+    document.getElementById("authSection").style.display = "flex";
+    document.getElementById("loginUsername").value = "admin";
+    document.getElementById("loginPassword").value = "f1admin";
+    destroyAllCharts();
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+  });
+
+  // Expose to global scope
+  window.handleLogin = handleLogin;
+  window.openDriverModal = openDriverModal;
+  window.closeDriverModal = closeDriverModal;
+</script>
+</body>
+</html>
